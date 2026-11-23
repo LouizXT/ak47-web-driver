@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AK47 웹 드라이버</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="logo">⌨</span>
+      <h1>Archon AK47 웹 드라이버</h1>
+    </div>
+    <div class="conn">
+      <span id="status" class="pill on"></span>
+      <button id="btnLcd" class="ghost" title="TFT 화면 업로드용 인터페이스를 추가로 연결합니다">LCD 인터페이스 추가</button>
+      <button id="btnDisconnect" class="ghost">연결 해제</button>
+    </div>
+  </header>
+
+  <section id="gate" class="gate">
+    <div class="gate-card">
+      <div class="gate-icon">⌨</div>
+      <h2>키보드를 연결하세요</h2>
+      <p>Archon AK47을 USB 케이블로 PC에 연결한 다음 아래 버튼을 누르고, 목록에서 <b>Archon AK47</b>을 선택하세요.</p>
+      <button id="btnConnect" class="primary big">키보드 연결</button>
+      <p id="unsupported" class="gate-warn hidden">이 브라우저는 키보드 연결(WebHID)을 지원하지 않습니다. PC의 <b>Chrome</b> 또는 <b>Edge</b>로 열어 주세요.</p>
+      <p class="gate-note">원본 드라이버 프로그램이 켜져 있다면 종료한 뒤 사용하는 것이 좋습니다.</p>
+    </div>
+  </section>
+
+  <div id="app" class="hidden">
+  <nav class="tabs" role="tablist">
+    <button data-tab="light" class="active">조명 모드</button>
+    <button data-tab="custom">키별 조명</button>
+    <button data-tab="keymap">키 매핑</button>
+    <button data-tab="macro">매크로</button>
+    <button data-tab="system">시스템</button>
+    <button data-tab="tft">TFT 화면</button>
+  </nav>
+
+  <main>
+    <!-- 조명 모드 -->
+    <section id="tab-light" class="tab active">
+      <div class="grid2">
+        <div class="card">
+          <h2>효과</h2>
+          <div id="modeGrid" class="modes"></div>
+        </div>
+        <div class="card">
+          <h2>설정</h2>
+          <div class="field" data-need="1"><label>밝기 <output id="briOut"></output></label><input type="range" id="bri" min="0" max="5" step="1" /></div>
+          <div class="field" data-need="2"><label>속도 <output id="spdOut"></output></label><input type="range" id="spd" min="0" max="5" step="1" /></div>
+          <div class="field" data-need="12"><label>방향</label>
+            <div class="seg" id="dirSeg">
+              <button data-v="0">← 0</button><button data-v="1">→ 1</button><button data-v="2">↑ 2</button><button data-v="3">↓ 3</button>
+            </div>
+          </div>
+          <div class="field" data-need="48"><label>색상</label>
+            <div class="row">
+              <label class="chk"><input type="checkbox" id="colorful" /> 컬러풀(무지개)</label>
+              <input type="color" id="lightColor" value="#ff0000" />
+            </div>
+            <div class="swatches" id="lightSwatches"></div>
+          </div>
+          <div class="actions"><button id="applyLight" class="primary">키보드에 적용</button></div>
+          <p class="hint">방향 값 0–3은 원본 드라이버의 버튼 순서를 따른 추정값입니다. 효과마다 실제 방향이 다를 수 있습니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 키별 조명 -->
+    <section id="tab-custom" class="tab">
+      <div class="card">
+        <div class="toolbar">
+          <input type="color" id="paintColor" value="#00aaff" />
+          <div class="swatches" id="paintSwatches"></div>
+          <span class="sep"></span>
+          <button id="fillAll" class="ghost">전체 채우기</button>
+          <button id="clearAll" class="ghost">전체 끄기</button>
+          <button id="eyedrop" class="ghost" title="키를 클릭해 색을 가져옵니다">스포이트</button>
+          <span class="sep"></span>
+          <label>밝기 <output id="cbriOut"></output> <input type="range" id="cbri" min="0" max="5" /></label>
+        </div>
+        <div id="kbCustom" class="kb"></div>
+        <div class="actions">
+          <button id="readCustom" class="ghost" title="0xF5 명령으로 키보드에 저장된 키별 색을 읽습니다 (실험적)">키보드에서 읽기</button>
+          <button id="applyCustom" class="primary">키보드에 적용</button>
+        </div>
+        <p class="hint">키를 클릭하거나 드래그해서 칠하세요. 적용하면 조명이 사용자 정의 모드(0x80)로 바뀝니다.</p>
+      </div>
+    </section>
+
+    <!-- 키 매핑 -->
+    <section id="tab-keymap" class="tab">
+      <div class="card">
+        <div class="toolbar">
+          <div class="seg" id="layerSeg"><button data-v="base" class="on">기본 레이어</button><button data-v="fn">Fn 레이어</button></div>
+          <span class="sep"></span>
+          <button id="resetLayer" class="ghost">이 레이어 초기화</button>
+          <span class="grow"></span>
+          <button id="applyKeymap" class="primary">이 레이어를 키보드에 쓰기</button>
+        </div>
+        <div id="kbMap" class="kb"></div>
+      </div>
+      <div class="card" id="keyEditor">
+        <h2>키 설정 <span id="keSel" class="muted">— 키를 선택하세요</span></h2>
+        <div class="ke-body hidden" id="keBody">
+          <div class="field"><label>기능</label>
+            <select id="keType">
+              <option value="default">기본값</option>
+              <option value="disable">키 비활성화</option>
+              <option value="key">키 / 키 조합</option>
+              <option value="shortcut">윈도우 단축키</option>
+              <option value="mouse">마우스 기능</option>
+              <option value="consumer">멀티미디어 / 앱</option>
+              <option value="macro">매크로</option>
+            </select>
+          </div>
+          <div class="ke-pane" data-pane="key">
+            <div class="field"><label>조합 키</label><div class="mods" id="keMods"></div></div>
+            <div class="field"><label>키</label>
+              <div class="row"><select id="keKey"></select><button id="keCapture" class="ghost">키 눌러서 지정</button></div>
+            </div>
+          </div>
+          <div class="ke-pane" data-pane="shortcut"><div class="field"><label>단축키</label><select id="keShortcut"></select></div></div>
+          <div class="ke-pane" data-pane="mouse"><div class="field"><label>마우스</label><select id="keMouse"></select></div></div>
+          <div class="ke-pane" data-pane="consumer"><div class="field"><label>기능</label><select id="keConsumer"></select></div></div>
+          <div class="ke-pane" data-pane="macro">
+            <div class="field"><label>매크로</label><select id="keMacro"></select></div>
+            <div class="row">
+              <div class="field"><label>재생 방식</label><select id="keMacroMode"></select></div>
+              <div class="field"><label>횟수 (1–255)</label><input type="number" id="keMacroCount" min="1" max="255" value="1" /></div>
+            </div>
+            <p class="hint">재생 방식 번호는 추정값입니다. 매크로 탭에서 매크로를 먼저 키보드에 써야 동작합니다.</p>
+          </div>
+          <div class="actions"><button id="keSet" class="primary">이 키에 지정</button></div>
+          <p class="hint">“키보드에 쓰기”를 눌러야 실제로 저장됩니다. Fn 레이어에서 회색 키는 Fn 기본 기능이 있어 바꿀 수 없습니다.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 매크로 -->
+    <section id="tab-macro" class="tab">
+      <div class="grid-macro">
+        <div class="card">
+          <h2>매크로 목록</h2>
+          <ul id="macroList" class="list"></ul>
+          <div class="actions">
+            <button id="macroAdd" class="ghost">새 매크로</button>
+            <button id="macroDel" class="ghost">삭제</button>
+          </div>
+          <div class="meter"><div id="macroMeter"></div></div>
+          <p class="hint" id="macroSize"></p>
+          <div class="actions"><button id="applyMacros" class="primary">모든 매크로를 키보드에 쓰기</button></div>
+        </div>
+        <div class="card">
+          <h2>편집 <input id="macroName" class="inline" placeholder="매크로 이름" /></h2>
+          <div class="toolbar">
+            <button id="recBtn" class="rec">● 녹화 시작</button>
+            <label class="chk"><input type="checkbox" id="recDelay" checked /> 실제 간격 기록</label>
+            <label>기본 간격 <input type="number" id="defDelay" value="30" min="10" max="65535" class="num" /> ms</label>
+            <span class="grow"></span>
+            <button id="evAddDelay" class="ghost">간격 일괄 설정</button>
+            <button id="evClear" class="ghost">모두 지우기</button>
+          </div>
+          <div id="recPad" class="recpad" tabindex="0">녹화 중에는 이 영역에서 키보드와 마우스 버튼을 누르세요</div>
+          <table class="events"><thead><tr><th>#</th><th>동작</th><th>키</th><th>다음까지(ms)</th><th></th></tr></thead><tbody id="evBody"></tbody></table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 시스템 -->
+    <section id="tab-system" class="tab">
+      <div class="card narrow">
+        <h2>시스템 설정</h2>
+        <label class="chk big"><input type="checkbox" id="sysWin" /> Windows 키 비활성화</label>
+        <label class="chk big"><input type="checkbox" id="sysAltF4" /> Alt + F4 비활성화</label>
+        <label class="chk big"><input type="checkbox" id="sysAltTab" /> Alt + Tab 비활성화</label>
+        <div class="field"><label>Fn 전환</label>
+          <select id="sysFn"><option value="0">기본 (F1–F12)</option><option value="1">Fn 기능 우선</option></select>
+        </div>
+        <div class="field"><label>절전 시간</label>
+          <select id="sysSleep"><option value="0">절전 안 함</option><option value="1">1분</option><option value="2">5분</option><option value="3">30분</option></select>
+        </div>
+        <div class="field"><label>키 응답 속도</label>
+          <select id="sysResp"><option value="0">레벨 1 (유선 약 2–3ms)</option><option value="1">레벨 2 (약 5–6ms)</option><option value="2">레벨 3 (약 8–9ms)</option><option value="3">레벨 4 (약 13–14ms)</option><option value="4">레벨 5 (약 17–18ms)</option></select>
+        </div>
+        <p class="hint">응답 속도가 너무 낮으면 스위치에 따라 채터링(중복 입력)이 생길 수 있습니다.</p>
+        <div class="actions"><button id="applySystem" class="primary">키보드에 적용</button></div>
+      </div>
+    </section>
+
+    <!-- TFT -->
+    <section id="tab-tft" class="tab">
+      <div class="grid2">
+        <div class="card">
+          <h2>시계 동기화</h2>
+          <p>PC의 현재 시간을 키보드 화면에 맞춥니다.</p>
+          <p class="clock" id="clockNow"></p>
+          <div class="actions"><button id="syncTime" class="primary">시간 동기화</button></div>
+        </div>
+        <div class="card">
+          <h2>화면 애니메이션 (240×135)</h2>
+          <input type="file" id="gifFile" accept="image/gif,image/png,image/jpeg,image/webp" />
+          <div class="row">
+            <label>맞춤 <select id="gifFit"><option value="cover">채우기(잘라냄)</option><option value="contain">전체 보기</option><option value="stretch">늘리기</option></select></label>
+            <label>프레임 간격 <input type="number" id="gifDelay" placeholder="원본" min="2" max="510" class="num" /> ms</label>
+          </div>
+          <canvas id="lcdPreview" width="240" height="135"></canvas>
+          <p class="hint" id="gifInfo">GIF/PNG/JPG를 선택하세요. 최대 141프레임.</p>
+          <details><summary>고급</summary>
+            <label class="chk"><input type="checkbox" id="gifSwap" /> RGB565 바이트 순서 반전 (색이 이상할 때)</label>
+          </details>
+          <div class="progress hidden" id="gifProg"><div></div></div>
+          <div class="actions"><button id="uploadGif" class="primary" disabled>키보드에 업로드</button></div>
+        </div>
+      </div>
+    </section>
+  </main>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
