@@ -34,25 +34,6 @@ Archon AK47 키보드의 조명·키 매핑·매크로·시스템 설정을 프�
 - **아직 실기기 미확인:** 키 매핑, 매크로, 시스템 설정, TFT 이미지 업로드, 2.4G 동글 연결
 - 일부 값(방향 번호, 키 비활성화 코드, 매크로 재생 방식, 절전 시간 번호)은 원본 드라이버 화면 순서로 추정한 값입니다. 자세한 내용은 [PROTOCOL.md](PROTOCOL.md)에 ⚠️로 표시해 두었습니다.
 - 공장 초기화, 펌웨어 업데이트, 실시간 음악 조명, 프로그램 실행·웹사이트 열기·텍스트 입력처럼 PC 프로그램이 처리하는 기능은 없습니다.
-
-## 개발
-
-WebHID는 HTTPS 또는 `localhost`에서만 동작하므로, 코드를 고친 뒤 확인할 때는 로컬 서버로 엽니다.
-
-```powershell
-node server.js
-```
-
-- <http://localhost:8047> — 일반 실행
-- <http://localhost:8047/?sim> — 키보드 없이 화면 확인 (보낼 패킷은 개발자 도구 콘솔의 Verbose 수준에 출력)
-
-`main` 브랜치에 push하면 GitHub Pages에 1~2분 안에 반영됩니다.
-
-| 파일 | 내용 |
-|---|---|
-| `index.html`, `css/style.css` | 화면 |
-| `js/app.js` | 화면 동작 |
-| `js/protocol.js` | 키보드 통신 (원본 함수 주소 주석 포함) |
 | `js/keycodes.js` | 키 코드, 키 매핑 인코딩 |
 | `js/layout.js` | 원본 `layouts/rgb-keyboard.xml`에서 생성한 키 배치 |
 | `PROTOCOL.md` | 분석한 통신 프로토콜 정리 |
